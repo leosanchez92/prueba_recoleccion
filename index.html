@@ -39,6 +39,8 @@
         <div class="mb-3">
             <label for="point-name" class="form-label text-uppercase text-secondary fw-bold" style="font-size: 11px;">Descripción evento</label>
             <input type="text" id="point-name" class="form-control form-control-sm" placeholder="Ej. Entrada Norte" autocomplete="off">
+            <label for="point-name" class="form-label text-uppercase text-secondary fw-bold" style="font-size: 11px;">Tipo delito</label>
+            <input type="text" id="point-delito" class="form-control form-control-sm" placeholder="Ej. Asalto" autocomplete="off">
         </div>
         
         <div class="d-flex gap-2">
@@ -64,8 +66,12 @@
     const map = new maplibregl.Map({
         container: 'map',
         style: 'https://tiles.openfreemap.org/styles/liberty', 
-        center: [-70.64827, -33.45694], 
-        zoom: 13
+        center: [-70.7318844463101, -34.166610179079164],   
+        zoom: 16,
+        maxBounds: [
+             [-70.82, -34.23], // SW
+             [-70.66, -34.08]  // NE
+                ]
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
@@ -93,6 +99,7 @@ async function cargarPuntos() {
         agregarMarcadorVerde(
             punto.id,
             punto.nombre,
+            punto.tipo_delito,
             lng,
             lat
         );
@@ -117,6 +124,7 @@ map.on('load', () => {
     const editToggle = document.getElementById('edit-toggle');
     const formPanel = document.getElementById('form-panel');
     const pointNameInput = document.getElementById('point-name');
+    const pointDelitoInput = document.getElementById('point-delito');
     const coordsDisplay = document.getElementById('coords-display');
     const saveBtn = document.getElementById('save-point-btn');
     const cancelBtn = document.getElementById('cancel-point-btn');
@@ -159,18 +167,23 @@ map.on('load', () => {
 saveBtn.addEventListener('click', function() {
 
     const name = pointNameInput.value.trim();
+    const delito = pointDelitoInput.value.trim();
 
     if (!name) {
         alert("Por favor, escribe un nombre para el punto.");
         return;
     }
 
-    const nuevoPunto = {
+    if (!delito) {
+        alert("Por favor, escribe el tipo de delito.");
+        return;
+    }
 
+    const nuevoPunto = {
         nombre: name,
+        tipo_delito: delito,
         lng: tempLng,
         lat: tempLat
-
     };
 
     guardarPuntoEnSupabase(nuevoPunto);
@@ -183,10 +196,14 @@ saveBtn.addEventListener('click', function() {
     });
 
     // --- FUNCIÓN PARA INSTANCIAR MARCADORES ---
-    function agregarMarcadorVerde(id, nombre, lng, lat) {
+    function agregarMarcadorVerde(id, nombre, tipoDelito, lng, lat) {
         const marker = new maplibregl.Marker({ color: "#198754" }) // Verde de Bootstrap
             .setLngLat([lng, lat])
-            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<b class="text-dark" style="font-family:sans-serif;">${nombre}</b>`))
+            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
+                <div style="font-family:sans-serif;">
+                    <strong class="text-dark">${nombre}</strong><br>
+                    <small class="text-secondary">Delito: ${tipoDelito}</small>
+                </div>`))
             .addTo(map);
 
         marker.getElement().addEventListener('click', function() {
@@ -205,7 +222,7 @@ async function guardarPuntoEnSupabase(punto) {
         .insert([
             {
                 nombre: punto.nombre,
-
+                tipo_delito: punto.tipo_delito,
                 geom: {
                     type: 'Point',
                     coordinates: [punto.lng, punto.lat]
@@ -233,9 +250,10 @@ async function guardarPuntoEnSupabase(punto) {
 
     agregarMarcadorVerde(
         data[0].id,
-        punto.nombre,
-        punto.lng,
-        punto.lat
+        data[0].nombre,
+        data[0].tipo_delito,
+        data[0].geom.coordinates[0],
+        data[0].geom.coordinates[1]
     );
 
     resetFormulario();
@@ -252,6 +270,7 @@ async function guardarPuntoEnSupabase(punto) {
         tempLng = null;
         tempLat = null;
         pointNameInput.value = '';
+        pointDelitoInput.value = '';
         formPanel.style.display = 'none';
     }
 </script>
