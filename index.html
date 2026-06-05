@@ -1,146 +1,373 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prueba puntos</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
 
     <script src="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <link
+      href="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
 
     <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        
-        /* Pequeños ajustes de posición que Bootstrap no cubre por defecto sobre mapas */
-        .panel-toggle { top: 15px; right: 15px; z-index: 2; }
-        .panel-form { bottom: 30px; left: 20px; z-index: 2; width: 280px; display: none; }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      /* Pequeños ajustes de posición que Bootstrap no cubre por defecto sobre mapas */
+      .panel-toggle {
+        top: 15px;
+        right: 15px;
+        z-index: 2;
+      }
+      .panel-form {
+        bottom: 30px;
+        left: 20px;
+        z-index: 2;
+        width: 280px;
+        display: none;
+      }
+      select:required:invalid {
+        color: gray;
+      }
+      option[value=""][disabled] {
+        display: none;
+      }
+      option {
+        color: black;
+      }
     </style>
-</head>
-<body class="bg-light">
+  </head>
+  <body class="bg-light">
+    <div id="map"></div>
 
-<div id="map"></div>
+    <div
+      class="modal fade"
+      id="welcomeModal"
+      tabindex="-1"
+      aria-labelledby="welcomeModalLabel"
+      aria-hidden="true"
+      style="z-index: 9999"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title fw-bold" id="welcomeModalLabel">
+              🗺️¡Bienvenido/a!
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <p class="text-secondary fs-6">
+              Este mapa te permitirá registrar una situación de delito o algún
+              hecho que haya afectado tu seguridad. Tu aporte nos ayudará a
+              conocer mejor dónde ocurren estos problemas y generar información
+              útil para la comunidad.
+            </p>
 
-<div class="panel-toggle position-absolute bg-white p-3 rounded-3 shadow-sm d-flex align-items-center">
-    <div class="form-check form-switch m-0 fs-6">
-        <input class="form-check-input style-cursor-pointer" type="checkbox" role="switch" id="edit-toggle">
-        <label class="form-check-input-label fw-semibold text-secondary" for="edit-toggle" style="user-select: none;">Modo de Edición</label>
+            <h6 class="fw-bold text-dark mb-2">¿Cómo utilizarlo?</h6>
+            <ol class="text-secondary small ps-3">
+              <li class="mb-2">
+                Activa el <strong>✏️ modo de registro</strong> en la esquina
+                superior derecha
+              </li>
+              <li class="mb-2">
+                Haz clic en el mapa para marcar el lugar donde ocurrió la
+                situación
+              </li>
+              <li class="mb-2">
+                Completa la información solicitada en el formulario que
+                aparecerá
+              </li>
+              <li class="mb-2">
+                <strong>Guardar</strong> los datos ingresados
+              </li>
+            </ol>
+            <div
+              class="alert alert-warning small border-0 mb-0 mt-3"
+              role="alert"
+            >
+              💡<strong>Nota:</strong> La información que registres es anónima y
+              se guarda en forma segura. Los puntos no son visibles para otras
+              personas que usen esta plataforma.
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button
+              type="button"
+              class="btn btn-success w-100 fw-semibold"
+              data-bs-dismiss="modal"
+            >
+              ¡ENTENDIDO!
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-</div>
 
-<div id="form-panel" class="panel-form position-absolute card border-0 shadow-lg animate-fade-in">
-    <div class="card-body p-4">
-        <h5 class="card-title fw-bold text-dark mb-1">Ejemplo punto</h5>
-        <div id="coords-display" class="text-muted small font-monospace mb-3">Texto persnalizable según requerimientos</div>
-        
+    <div
+      class="panel-toggle position-absolute bg-white p-3 rounded-3 shadow-sm d-flex align-items-center"
+    >
+      <div class="form-check form-switch m-0 fs-6">
+        <input
+          class="form-check-input style-cursor-pointer"
+          type="checkbox"
+          role="switch"
+          id="edit-toggle"
+        />
+        <label
+          class="form-check-label fw-semibold text-secondary"
+          for="edit-toggle"
+          style="user-select: none"
+          >✏️ Registrar una situación</label
+        >
+      </div>
+    </div>
+
+    <div
+      id="form-panel"
+      class="panel-form position-absolute card border-0 shadow-lg animate-fade-in"
+    >
+      <div class="card-body p-4">
+        <h5 class="card-title fw-bold text-dark mb-1">Registrar situación</h5>
+        <div id="coords-display" class="text-muted small font-monospace mb-3">
+          Completa los datos solicitados
+        </div>
+
         <div class="mb-3">
-            <label for="point-name" class="form-label text-uppercase text-secondary fw-bold" style="font-size: 11px;">Descripción evento</label>
-            <input type="text" id="point-name" class="form-control form-control-sm" placeholder="Ej. Entrada Norte" autocomplete="off">
-            <label for="point-name" class="form-label text-uppercase text-secondary fw-bold" style="font-size: 11px;">Tipo delito</label>
-            <input type="text" id="point-delito" class="form-control form-control-sm" placeholder="Ej. Asalto" autocomplete="off">
+          <label
+            for="point-sexo"
+            class="form-label text-uppercase text-secondary fw-bold"
+            style="font-size: 11px"
+            >Selecciona tu género</label
+          >
+          <select
+            required
+            id="point-sexo"
+            name="sexo"
+            class="form-select form-select-sm"
+          >
+            <option value="" selected disabled hidden>
+              Selecciona una opción
+            </option>
+            <option value="Hombre">Masculino</option>
+            <option value="Mujer">Femenino</option>
+            <option value="Otro">Otro</option>
+            <option value="Prefiero no contestar">Prefiero no contestar</option>
+          </select>
+          <label
+            for="point-edad"
+            class="form-label text-uppercase text-secondary fw-bold"
+            style="font-size: 11px"
+            >Señala tu edad</label
+          >
+          <input
+            required
+            type="number"
+            id="point-edad"
+            name="edad"
+            class="form-control form-control-sm"
+            placeholder="Ej. 17"
+            min="6"
+            max="22"
+            autocomplete="off"
+          />
+
+          <label
+            for="point-fecha"
+            class="form-label text-uppercase text-secondary fw-bold"
+            style="font-size: 11px"
+            >Fecha aproximada del incidente</label
+          >
+          <input
+            required
+            type="date"
+            id="point-fecha"
+            name="fecha"
+            class="form-control form-control-sm"
+            autocomplete="off"
+            max="2026-12-31"
+          />
+
+          <label
+            for="point-hora"
+            class="form-label text-uppercase text-secondary fw-bold"
+            style="font-size: 11px"
+            >Hora aproximada del incidente</label
+          >
+
+          <select
+            required
+            id="point-hora"
+            name="tramo_hr"
+            class="form-select form-select-sm"
+          >
+            <option value="" selected disabled hidden>
+              Selecciona una opción
+            </option>
+            <option value="Mañana">Mañana</option>
+            <option value="Medio día">Medio día</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noche">Noche</option>
+          </select>
+
+          <label
+            for="point-tipo"
+            class="form-label text-uppercase text-secondary fw-bold"
+            style="font-size: 11px"
+            >Tipo de delito/situación</label
+          >
+
+          <select
+            required
+            id="point-tipo"
+            name="tipo_delito"
+            class="form-select form-select-sm"
+          >
+            <option value="" selected disabled hidden>
+              Selecciona una opción
+            </option>
+            <option value="Robo violencia intimidacion">
+              Robo con violencia o intimidación
+            </option>
+            <option value="Robo por sorpresa">Robo por sorpresa</option>
+            <option value="Agresiones y lesiones">Agresiones y lesiones</option>
+            <option value="Amenazas">Amenazas</option>
+            <option value="Acoso">Acoso</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <label
+            for="point-denuncia"
+            class="form-label text-uppercase text-secondary fw-bold"
+            style="font-size: 11px"
+            >¿Realizaste denuncia?</label
+          >
+          <select
+            required
+            id="point-denuncia"
+            name="denuncia"
+            class="form-select form-select-sm"
+          >
+            <option value="" selected disabled hidden>
+              Selecciona una opción
+            </option>
+            <option value="Si">Sí</option>
+            <option value="No">No</option>
+            <option value="Prefiero no decir">Prefiero no responder</option>
+          </select>
         </div>
-        
+
         <div class="d-flex gap-2">
-            <button id="cancel-point-btn" class="btn btn-sm btn-danger w-100 fw-semibold">CANCELAR</button>
-            <button id="save-point-btn" class="btn btn-sm btn-success w-100 fw-semibold">GUARDAR</button>
+          <button
+            id="cancel-point-btn"
+            class="btn btn-sm btn-danger w-100 fw-semibold"
+          >
+            CANCELAR
+          </button>
+          <button
+            id="save-point-btn"
+            class="btn btn-sm btn-success w-100 fw-semibold"
+          >
+            GUARDAR
+          </button>
         </div>
+      </div>
     </div>
-</div>
 
-<script>
-      
-      // Conexión SUPABASE
+    <script>
+      // ==========================================
+      // 1. CONFIGURACIÓN E INICIALIZACIÓN
+      // ==========================================
 
-    const SUPABASE_URL = 'https://gvunllvmgrfkhknwtpco.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_SKJF8lmnKiMFK9ZtWT7z_Q_e8dQBUKi';
+      const SUPABASE_URL = "https://gvunllvmgrfkhknwtpco.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_SKJF8lmnKiMFK9ZtWT7z_Q_e8dQBUKi";
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const supabaseClient = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-    );  
-  
-    
-    const map = new maplibregl.Map({
-        container: 'map',
-        style: 'https://tiles.openfreemap.org/styles/liberty', 
-        center: [-70.7318844463101, -34.166610179079164],   
+      /// Modal de bienvenida al iniciar la página
+      document.addEventListener("DOMContentLoaded", function () {
+        const modalElement = document.getElementById("welcomeModal");
+        const bienvenidaModal = new bootstrap.Modal(modalElement);
+        bienvenidaModal.show();
+      });
+
+      const map = new maplibregl.Map({
+        container: "map",
+        style: "https://tiles.openfreemap.org/styles/liberty",
+        center: [-70.7318844463101, -34.166610179079164],
         zoom: 16,
         maxBounds: [
-             [-70.82, -34.23], // SW
-             [-70.66, -34.08]  // NE
-                ]
-    });
+          [-70.82, -34.23], // SW
+          [-70.66, -34.08], // NE
+        ],
+      });
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-left');
+      map.addControl(new maplibregl.NavigationControl(), "top-left");
 
-// Cargar puntos desde SUPABASE
+      map.on("load", () => {
+        console.log("Mapa listo.");
+      });
 
-async function cargarPuntos() {
+      // --- ARQUITECTURA: Configuración de campos obligatorios para validar ---
+      const CAMPOS_FORMULARIO = [
+        "sexo",
+        "edad",
+        "fecha",
+        "tramo_hr",
+        "tipo_delito",
+        "denuncia",
+      ];
 
-    const { data, error } = await supabaseClient
-        .from('puntos')
-        .select('*');
+      // Estado de la sesión
+      let isEditing = false;
+      let tempMarker = null;
+      let tempLng = null,
+        tempLat = null;
+      let clickEnMarcador = false;
 
-    if (error) {
-        console.error('Error cargando puntos:', error);
-        return;
-    }
+      // Elementos del DOM (Fijos de control)
+      const editToggle = document.getElementById("edit-toggle");
+      const formPanel = document.getElementById("form-panel");
+      const saveBtn = document.getElementById("save-point-btn");
+      const cancelBtn = document.getElementById("cancel-point-btn");
 
-    console.log('Puntos cargados:', data);
+      // ==========================================
+      // 2. EVENTOS DE CONTROLADORES E INTERFAZ
+      // ==========================================
 
-    data.forEach(punto => {
-
-      const lng = punto.geom.coordinates[0];
-      const lat = punto.geom.coordinates[1];
-
-        agregarMarcadorVerde(
-            punto.id,
-            punto.nombre,
-            punto.tipo_delito,
-            lng,
-            lat
-        );
-
-    });
-
-}
-
-// Ejecutar cuando el mapa termine de cargar
-map.on('load', () => {
-    cargarPuntos();
-});
-
-    // Estado de la sesión
-    let isEditing = false;
-    let tempMarker = null; 
-    let tempLng = null, tempLat = null;
-    let clickEnMarcador = false; 
-    const listaDePuntos = [];
-
-    // Elementos del DOM
-    const editToggle = document.getElementById('edit-toggle');
-    const formPanel = document.getElementById('form-panel');
-    const pointNameInput = document.getElementById('point-name');
-    const pointDelitoInput = document.getElementById('point-delito');
-    const coordsDisplay = document.getElementById('coords-display');
-    const saveBtn = document.getElementById('save-point-btn');
-    const cancelBtn = document.getElementById('cancel-point-btn');
-
-    // Cambiar modo de edición con el Toggle
-    editToggle.addEventListener('change', function() {
+      // Cambiar modo de edición con el Toggle
+      editToggle.addEventListener("change", function () {
         isEditing = this.checked;
-        map.getCanvas().style.cursor = isEditing ? 'crosshair' : '';
+        map.getCanvas().style.cursor = isEditing ? "pointer" : "";
         if (!isEditing) resetFormulario();
-    });
+      });
 
-    // Clic en el mapa
-    map.on('click', function(e) {
+      // Clic en el mapa para previsualizar punto rojo
+      map.on("click", function (e) {
         if (clickEnMarcador) {
-            clickEnMarcador = false; 
-            return;
+          clickEnMarcador = false;
+          return;
         }
 
         if (!isEditing) return;
@@ -149,131 +376,153 @@ map.on('load', () => {
         tempLng = lng;
         tempLat = lat;
 
-        // Mostrar formulario usando clases de Bootstrap (d-block limpia el display)
-        formPanel.style.display = 'block';
-        //coordsDisplay.innerText = `POINT(${lng.toFixed(6)} ${lat.toFixed(6)})`;
-        pointNameInput.focus();
+        formPanel.style.display = "block";
+
+        // Foco dinámico al primer input del panel
+        formPanel.querySelector("input")?.focus();
 
         if (tempMarker) {
-            tempMarker.setLngLat([lng, lat]);
+          tempMarker.setLngLat([lng, lat]);
         } else {
-            tempMarker = new maplibregl.Marker({ color: "#dc3545" }) // Rojo de Bootstrap
-                .setLngLat([lng, lat])
-                .addTo(map);
-        }
-    });
-
-    // --- ACCIÓN: GUARDAR PUNTO ---
-saveBtn.addEventListener('click', function() {
-
-    const name = pointNameInput.value.trim();
-    const delito = pointDelitoInput.value.trim();
-
-    if (!name) {
-        alert("Por favor, escribe un nombre para el punto.");
-        return;
-    }
-
-    if (!delito) {
-        alert("Por favor, escribe el tipo de delito.");
-        return;
-    }
-
-    const nuevoPunto = {
-        nombre: name,
-        tipo_delito: delito,
-        lng: tempLng,
-        lat: tempLat
-    };
-
-    guardarPuntoEnSupabase(nuevoPunto);
-
-});
-
-    // --- ACCIÓN: CANCELAR PUNTO ---
-    cancelBtn.addEventListener('click', function() {
-        resetFormulario();
-    });
-
-    // --- FUNCIÓN PARA INSTANCIAR MARCADORES ---
-    function agregarMarcadorVerde(id, nombre, tipoDelito, lng, lat) {
-        const marker = new maplibregl.Marker({ color: "#198754" }) // Verde de Bootstrap
+          tempMarker = new maplibregl.Marker({ color: "#dc3545" })
             .setLngLat([lng, lat])
-            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
-                <div style="font-family:sans-serif;">
-                    <strong class="text-dark">${nombre}</strong><br>
-                    <small class="text-secondary">Delito: ${tipoDelito}</small>
-                </div>`))
             .addTo(map);
+        }
+      });
 
-        marker.getElement().addEventListener('click', function() {
-            clickEnMarcador = true;
-        });
-    }
+      // Botón GUARDAR
+      saveBtn.addEventListener("click", function () {
+        const datosFormulario = obtenerYValidarDatos();
+        if (!datosFormulario) return; // Validación fallida, detiene el flujo
 
-// ==========================
-// GUARDAR EN SUPABASE
-// ==========================
+        const nuevoPunto = {
+          ...datosFormulario,
+          lng: tempLng,
+          lat: tempLat,
+        };
 
-async function guardarPuntoEnSupabase(punto) {
+        guardarPuntoEnSupabase(nuevoPunto);
+      });
 
-    const { data, error } = await supabaseClient
-        .from('puntos')
-        .insert([
-            {
-                nombre: punto.nombre,
-                tipo_delito: punto.tipo_delito,
-                geom: {
-                    type: 'Point',
-                    coordinates: [punto.lng, punto.lat]
-                }
+      // Botón CANCELAR
+      cancelBtn.addEventListener("click", function () {
+        resetFormulario();
+      });
+
+      // ==========================================
+      // 3. PROCESAMIENTO DINÁMICO DE FORMULARIOS
+      // ==========================================
+
+      // Recoge todos los inputs con 'name' y los valida dinámicamente
+      function obtenerYValidarDatos() {
+        const formData = new FormData();
+
+        formPanel
+          .querySelectorAll("input, select, textarea")
+          .forEach((input) => {
+            if (input.name) {
+              formData.append(input.name, input.value.trim());
             }
-        ])
-        .select();
+          });
 
-    if (error) {
+        for (const campo of CAMPOS_FORMULARIO) {
+          if (!formData.get(campo)) {
+            const inputElement = formPanel.querySelector(`[name="${campo}"]`);
+            const labelText =
+              inputElement?.previousElementSibling?.textContent || campo;
+            alert(`Por favor, complete todos los campos`);
+            inputElement?.focus();
+            return null;
+          }
+        }
 
-        console.error(
-            'Error guardando punto:',
-            error
+        return Object.fromEntries(formData.entries());
+      }
+
+      // ==========================================
+      // 4. PERSISTENCIA EN BASE DE DATOS (SUPABASE)
+      // ==========================================
+
+      async function guardarPuntoEnSupabase(punto) {
+        const { lng, lat, ...columnasBD } = punto;
+
+        const { data, error } = await supabaseClient
+          .from("puntos")
+          .insert([
+            {
+              ...columnasBD, // Inserta de forma automatizada todas las propiedades mapeadas
+              geom: {
+                type: "Point",
+                coordinates: [lng, lat],
+              },
+            },
+          ])
+          .select();
+
+        if (error) {
+          console.error("Error guardando punto:", error);
+          alert("No se pudo guardar el punto");
+          return;
+        }
+        
+        alert("¡Punto guardado con éxito!");
+
+        // Pasamos el objeto de la fila entera para que el marcador procese lo que necesite
+        agregarMarcadorVerde(data[0]);
+
+        resetFormulario();
+      }
+
+      // ==========================================
+      // 5. LOGICA VISUAL DE MARCADORES Y REFRESH
+      // ==========================================
+
+      // Recibe el objeto del punto directo de la base de datos
+      function agregarMarcadorVerde(puntoBD) {
+        const [lng, lat] = puntoBD.geom.coordinates;
+
+        const marker = new maplibregl.Marker({ color: "#198754" })
+          .setLngLat([lng, lat])
+          /*  .setPopup(
+            new maplibregl.Popup({ offset: 25 }).setHTML(`
+                <div style="font-family:sans-serif;">
+                    <strong class="text-dark">${puntoBD.nombre}</strong><br>
+                    <small class="text-secondary">Delito: ${puntoBD.tipo_delito}</small>
+                </div>`),
+          ) */
+          .addTo(map);
+
+        marker.getElement().addEventListener("click", function () {
+          clickEnMarcador = true;
+        });
+
+        console.log(
+          `Marcador temporal activo. Eliminación automática en 5 segundos.`,
         );
 
-        alert('No se pudo guardar el punto');
+        setTimeout(() => {
+          marker.remove();
+          console.log(`El marcador se ha eliminado.`);
+        }, 5000);
+      }
 
-        return;
-    }
-
-    console.log(
-        'Punto guardado:',
-        data
-    );
-
-    agregarMarcadorVerde(
-        data[0].id,
-        data[0].nombre,
-        data[0].tipo_delito,
-        data[0].geom.coordinates[0],
-        data[0].geom.coordinates[1]
-    );
-
-    resetFormulario();
-
-}
-
-
-    // Función para resetear el estado de edición
-    function resetFormulario() {
+      // Limpieza automatizada de cualquier input dentro del panel
+      function resetFormulario() {
         if (tempMarker) {
-            tempMarker.remove();
-            tempMarker = null;
+          tempMarker.remove();
+          tempMarker = null;
         }
         tempLng = null;
         tempLat = null;
-        pointNameInput.value = '';
-        pointDelitoInput.value = '';
-        formPanel.style.display = 'none';
-    }
-</script>
 
-</body>
+        formPanel
+          .querySelectorAll("input, select, textarea")
+          .forEach((input) => {
+            input.value = "";
+          });
+
+        formPanel.style.display = "none";
+      }
+    </script>
+  </body>
 </html>
